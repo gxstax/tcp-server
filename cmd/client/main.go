@@ -57,7 +57,7 @@ func startClient(i int) {
 			}
 
 			conn.SetReadDeadline(time.Now().Add(time.Second * 1))
-			ackFramePayLoad, err := frameCodec.Decode(conn)
+			ackFramePayLoad, err := frameCodec.Decode(conn) // 解码 []byte -> FramePayLoad
 			if err != nil {
 				if e, ok := err.(net.Error); ok {
 					if e.Timeout() {
@@ -67,10 +67,10 @@ func startClient(i int) {
 				panic(err)
 			}
 
-			p, err := packet.Decode(ackFramePayLoad)
+			p, err := packet.Decode(ackFramePayLoad) // 解码: []byte -> Packet
 			submitAck, ok := p.(*packet.SubmitAck)
 			if !ok {
-				panic("not submitack")
+				panic("not submitAck")
 			}
 			fmt.Printf("[client %d]: the result of submit ack[%s] is %d\n", i, submitAck.ID, submitAck.Result)
 		}
@@ -86,14 +86,14 @@ func startClient(i int) {
 			Payload: 	[]byte(payload),
 		}
 
-		framePayload, err := packet.Encode(s)
+		framePayload, err := packet.Encode(s) // 编码: Packet -> []byte
 		if err != nil {
 			panic(err)
 		}
 
 		fmt.Printf("[client %d]: send submit id = %s, payload=%s, frame length = %d\n", i, s.ID, s.Payload, len(framePayload) + 4)
 
-		err = frameCodec.Encode(conn, framePayload)
+		err = frameCodec.Encode(conn, framePayload) // 编码: FramePayload -> []byte
 		if err != nil {
 			panic(err)
 		}
@@ -102,7 +102,7 @@ func startClient(i int) {
 		if counter >= 10 {
 			quit <- struct{}{}
 			<-done
-			fmt.Printf("[client %d]: exit ok", i)
+			fmt.Printf("[client %d]: exit ok\n", i)
 			return
 		}
 	}

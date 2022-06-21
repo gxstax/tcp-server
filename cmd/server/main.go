@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"github.com/gxstax/tcp-server/frame"
 	"github.com/gxstax/tcp-server/packet"
@@ -9,7 +10,7 @@ import (
 
 func handlePacket(framePayload []byte) (ackFramePayload []byte, err error) {
 	var p packet.Packet
-	p, err = packet.Decode(framePayload)
+	p, err = packet.Decode(framePayload) // 解码
 	if err != nil {
 		fmt.Println("handleConn: packet decode error:", err)
 		return
@@ -23,6 +24,7 @@ func handlePacket(framePayload []byte) (ackFramePayload []byte, err error) {
 			ID:		submit.ID,
 			Result: 0,
 		}
+		packet.SubmitPool.Put(submit) // 将 submit 对象归还给 Pool 池
 
 		ackFramePayload, err = packet.Encode(submitAck)
 		if err != nil {
@@ -39,9 +41,14 @@ func handleConn(c net.Conn) {
 	defer c.Close()
 	frameCodec := frame.NewMyFrameCodec()
 
+	// 增加 net.Conn 的读写缓存
+	rbuf := bufio.NewReader(c)
+	wbuf := bufio.NewWriter(c)
+
+	defer wbuf.Flush()
 	for {
 		// decode the frame to get the payload
-		framePayload, err := frameCodec.Decode(c)
+		framePayload, err := frameCodec.Decode(rbuf)
 		if err != nil {
 			fmt.Println("handleConn: frame decode error:", err)
 			return
@@ -55,7 +62,7 @@ func handleConn(c net.Conn) {
 		}
 
 		// write ack frame to the connection
-		err = frameCodec.Encode(c, ackFramePayload)
+		err = frameCodec.Encode(wbuf, ackFramePayload)
 		if err != nil {
 			fmt.Println("handleConn: frame encode error:", err)
 			return

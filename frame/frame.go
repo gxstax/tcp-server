@@ -9,8 +9,8 @@ import (
 type FramePayload []byte
 
 type StreamFrameCodec interface {
-	Encode(io.Writer, FramePayload) error		// data -> frame, 并写入 io.Writer
-	Decode(io.Reader) (FramePayload, error)		// 从 io.Reader 中提取 frame payload，并返回给上层
+	Encode(io.Writer, FramePayload) error		// 编码: data -> frame, 并写入 io.Writer
+	Decode(io.Reader) (FramePayload, error)		// 解码: 从 io.Reader 中提取 frame payload，并返回给上层
 }
 
 var ErrShortWrite = errors.New("short write")
@@ -24,7 +24,7 @@ func NewMyFrameCodec() StreamFrameCodec {
 
 func (p *myFrameCodec) Encode(w io.Writer, framePayload FramePayload) error {
 	var f = framePayload
-	var totalLen int32 = int32(len(framePayload)) + 4
+	var totalLen int32 = int32(len(framePayload)) + 4 // +4 是要加上 totalLength 所占的4个字节
 
 	err := binary.Write(w, binary.BigEndian, &totalLen)
 	if err != nil {
